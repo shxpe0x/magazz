@@ -1,0 +1,147 @@
+@model magazz.Models.Order
+
+@{
+    ViewData["Title"] = $"Заказ №{Model.OrderNumber}";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>@ViewData["Title"]</h2>
+        <a asp-action="MyOrders" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Назад к заказам
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Информация о заказе -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о заказе</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Номер заказа:</strong></td>
+                            <td>@Model.OrderNumber</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Дата заказа:</strong></td>
+                            <td>@Model.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Статус:</strong></td>
+                            <td>
+                                <span class="badge 
+                                    @(Model.Status == magazz.Models.OrderStatus.Pending ? "bg-warning" : 
+                                      Model.Status == magazz.Models.OrderStatus.Processing ? "bg-info" :
+                                      Model.Status == magazz.Models.OrderStatus.Shipped ? "bg-primary" :
+                                      Model.Status == magazz.Models.OrderStatus.Delivered ? "bg-success" :
+                                      "bg-danger")">
+                                    @Model.Status switch
+                                    {
+                                        magazz.Models.OrderStatus.Pending => "Ожидает обработки",
+                                        magazz.Models.OrderStatus.Processing => "В обработке",
+                                        magazz.Models.OrderStatus.Shipped => "Отправлен",
+                                        magazz.Models.OrderStatus.Delivered => "Доставлен",
+                                        magazz.Models.OrderStatus.Cancelled => "Отменен",
+                                        _ => Model.Status.ToString()
+                                    }
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Адрес доставки:</strong></td>
+                            <td>@Model.DeliveryAddress</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(Model.Note))
+                        {
+                            <tr>
+                                <td><strong>Комментарий:</strong></td>
+                                <td>@Model.Note</td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+
+            <!-- Товары в заказе -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Товары</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Товар</th>
+                                    <th>Размер</th>
+                                    <th>Цвет</th>
+                                    <th>Цена</th>
+                                    <th>Кол-во</th>
+                                    <th class="text-end">Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OrderItems)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a asp-controller="Products" asp-action="Details" asp-route-id="@item.ProductId">
+                                                @item.Product.Name
+                                            </a>
+                                        </td>
+                                        <td>@(item.SelectedSize ?? "-")</td>
+                                        <td>@(item.SelectedColor ?? "-")</td>
+                                        <td>@item.PriceAtOrder.ToString("N0") ₽</td>
+                                        <td>@item.Quantity</td>
+                                        <td class="text-end">@((item.PriceAtOrder * item.Quantity).ToString("N0")) ₽</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Итого -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Итого</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td>Товаров:</td>
+                            <td class="text-end">@Model.OrderItems.Count шт.</td>
+                        </tr>
+                        <tr>
+                            <td>Количество:</td>
+                            <td class="text-end">@Model.OrderItems.Sum(i => i.Quantity) шт.</td>
+                        </tr>
+                        <tr class="border-top">
+                            <td><strong>Итого:</strong></td>
+                            <td class="text-end"><h4 class="text-primary mb-0">@Model.TotalAmount.ToString("N0") ₽</h4></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            @if (Model.Customer != null)
+            {
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Контактная информация</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-1"><strong>@Model.Customer.FirstName @Model.Customer.LastName</strong></p>
+                        <p class="mb-1"><i class="bi bi-telephone"></i> @Model.Customer.Phone</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
