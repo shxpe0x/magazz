@@ -30,6 +30,13 @@ namespace magazz.Data
                 .HasForeignKey<ApplicationUser>(u => u.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Настройка связи Cart -> User (для авторизованных пользователей)
+            modelBuilder.Entity<Cart>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Настройка связей Product
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Category)
@@ -92,6 +99,9 @@ namespace magazz.Data
             // Индексы
             modelBuilder.Entity<Cart>()
                 .HasIndex(c => c.SessionId);
+
+            modelBuilder.Entity<Cart>()
+                .HasIndex(c => c.UserId);
 
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.OrderNumber)
