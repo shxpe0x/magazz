@@ -29,17 +29,68 @@ namespace magazz.Controllers
         // Получить или создать корзину
         private async Task<Cart> GetOrCreateCart()
         {
-            var sessionId = GetOrCreateSessionId();
-            var cart = await _context.Carts
-                .Include(c => c.CartItems)
-                .ThenInclude(ci => ci.Product)
-                .FirstOrDefaultAsync(c => c.SessionId == sessionId);
+            Cart? cart = null;
 
-            if (cart == null)
+            // Если пользователь авторизован, ищем корзину по UserId
+            if (User.Identity?.IsAuthenticated == true)
             {
-                cart = new Cart { SessionId = sessionId };
-                _context.Carts.Add(cart);
-                await _context.SaveChangesAsync();
+                var userId = User.Identity.Name; // Email = UserName
+                
+                // Проверяем, есть ли корзина пользователя
+                cart = await _context.Carts
+                    .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.Product)
+                    .FirstOrDefaultAsync(c => c.UserId == userId);
+
+                // Если корзины нет, проверяем анонимную корзину
+                if (cart == null)
+                {
+                    var sessionId = GetOrCreateSessionId();
+                    var anonymousCart = await _context.Carts
+                        .Include(c => c.CartItems)
+                        .ThenInclude(ci => ci.Product)
+                        .FirstOrDefaultAsync(c => c.SessionId == sessionId);
+
+                    if (anonymousCart != null && anonymousCart.CartItems.Any())
+                    {
+                        // Переносим анонимную корзину пользователю
+                        anonymousCart.UserId = userId;
+                        anonymousCart.SessionId = null;
+                        anonymousCart.UpdatedAt = DateTime.Now;
+                        await _context.SaveChangesAsync();
+                        cart = anonymousCart;
+                    }
+                    else
+                    {
+                        // Создаем новую корзину для пользователя
+                        cart = new Cart { UserId = userId };
+                        _context.Carts.Add(cart);
+                        await _context.SaveChangesAsync();
+                        
+                        // Удаляем пустую анонимную корзину
+                        if (anonymousCart != null)
+                        {
+                            _context.Carts.Remove(anonymousCart);
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Анонимный пользователь - используем SessionId
+                var sessionId = GetOrCreateSessionId();
+                cart = await _context.Carts
+                    .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.Product)
+                    .FirstOrDefaultAsync(c => c.SessionId == sessionId);
+
+                if (cart == null)
+                {
+                    cart = new Cart { SessionId = sessionId };
+                    _context.Carts.Add(cart);
+                    await _context.SaveChangesAsync();
+                }
             }
 
             return cart;
