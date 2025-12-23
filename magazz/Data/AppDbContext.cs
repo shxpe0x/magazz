@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using magazz.Models;
 
 namespace magazz.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -21,6 +22,13 @@ namespace magazz.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Настройка связи ApplicationUser -> Customer
+            modelBuilder.Entity<ApplicationUser>()
+                .HasOne(u => u.Customer)
+                .WithOne()
+                .HasForeignKey<ApplicationUser>(u => u.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Настройка связей Product
             modelBuilder.Entity<Product>()
