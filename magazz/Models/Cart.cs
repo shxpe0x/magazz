@@ -4,14 +4,18 @@ namespace magazz.Models
     {
         public int Id { get; set; }
         
-        // Session ID для идентификации корзины
-        public string SessionId { get; set; } = string.Empty;
+        // Session ID для анонимных пользователей
+        public string? SessionId { get; set; }
+        
+        // User ID для авторизованных пользователей
+        public string? UserId { get; set; }
         
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
         
-        // Navigation property
+        // Navigation properties
+        public ApplicationUser? User { get; set; }
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
     }
     
