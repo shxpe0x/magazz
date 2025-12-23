@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using magazz.Models;
 using magazz.ViewModels;
 using magazz.Data;
@@ -138,6 +139,90 @@ namespace magazz.Controllers
             return View();
         }
 
+        // GET: /Account/Profile
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            // Загружаем Customer
+            var customer = await _context.Customers.FindAsync(user.CustomerId);
+
+            var model = new ProfileViewModel
+            {
+                Email = user.Email ?? "",
+                FirstName = customer?.FirstName,
+                LastName = customer?.LastName,
+                Phone = customer?.PhoneNumber,
+                Address = customer?.Address
+            };
+
+            return View(model);
+        }
+
+        // POST: /Account/Profile
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Profile(ProfileViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            // Обновляем Customer
+            var customer = await _context.Customers.FindAsync(user.CustomerId);
+            if (customer != null)
+            {
+                customer.FirstName = model.FirstName;
+                customer.LastName = model.LastName;
+                customer.PhoneNumber = model.Phone;
+                customer.Address = model.Address;
+                await _context.SaveChangesAsync();
+            }
+
+            // Смена пароля (если указан)
+            if (!string.IsNullOrEmpty(model.CurrentPassword) && !string.IsNullOrEmpty(model.NewPassword))
+            {
+                var changePasswordResult = await _userManager.ChangePasswordAsync(
+                    user,
+                    model.CurrentPassword,
+                    model.NewPassword);
+
+                if (changePasswordResult.Succeeded)
+                {
+                    await _signInManager.RefreshSignInAsync(user);
+                    TempData["Success"] = "Профиль и пароль успешно обновлены";
+                }
+                else
+                {
+                    foreach (var error in changePasswordResult.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, TranslateIdentityError(error.Code));
+                    }
+                    return View(model);
+                }
+            }
+            else
+            {
+                TempData["Success"] = "Профиль успешно обновлен";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
         // Перевод ошибок Identity на русский
         private string TranslateIdentityError(string errorCode)
         {
@@ -151,7 +236,8 @@ namespace magazz.Controllers
                 "PasswordRequiresDigit" => "Пароль должен содержать цифру",
                 "PasswordRequiresLower" => "Пароль должен содержать строчную букву",
                 "PasswordRequiresUpper" => "Пароль должен содержать заглавную букву",
-                _ => "Произошла ошибка при регистрации"
+                "PasswordMismatch" => "Неверный текущий пароль",
+                _ => "Произошла ошибка"
             };
         }
     }
