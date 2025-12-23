@@ -1,0 +1,77 @@
+@model IEnumerable<magazz.Models.Order>
+
+@{
+    ViewData["Title"] = "Мои заказы";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> У вас пока нет заказов.
+        </div>
+        <a asp-controller="Products" asp-action="Index" class="btn btn-primary">
+            <i class="bi bi-shop"></i> Перейти в каталог
+        </a>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var order in Model)
+            {
+                <div class="col-md-12 mb-3">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Заказ №@order.OrderNumber</strong>
+                                <span class="text-muted ms-2">@order.OrderDate.ToString("dd.MM.yyyy HH:mm")</span>
+                            </div>
+                            <span class="badge 
+                                @(order.Status == magazz.Models.OrderStatus.Pending ? "bg-warning" : 
+                                  order.Status == magazz.Models.OrderStatus.Processing ? "bg-info" :
+                                  order.Status == magazz.Models.OrderStatus.Shipped ? "bg-primary" :
+                                  order.Status == magazz.Models.OrderStatus.Delivered ? "bg-success" :
+                                  "bg-danger")">
+                                @order.Status switch
+                                {
+                                    magazz.Models.OrderStatus.Pending => "Ожидает обработки",
+                                    magazz.Models.OrderStatus.Processing => "В обработке",
+                                    magazz.Models.OrderStatus.Shipped => "Отправлен",
+                                    magazz.Models.OrderStatus.Delivered => "Доставлен",
+                                    magazz.Models.OrderStatus.Cancelled => "Отменен",
+                                    _ => order.Status.ToString()
+                                }
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <p class="mb-1">
+                                        <strong>Товаров:</strong> @order.OrderItems.Count
+                                    </p>
+                                    <p class="mb-1">
+                                        <strong>Адрес доставки:</strong> @order.DeliveryAddress
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(order.Note))
+                                    {
+                                        <p class="mb-1">
+                                            <strong>Комментарий:</strong> @order.Note
+                                        </p>
+                                    }
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <h4 class="text-primary mb-3">@order.TotalAmount.ToString("N0") ₽</h4>
+                                    <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> Подробнее
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
