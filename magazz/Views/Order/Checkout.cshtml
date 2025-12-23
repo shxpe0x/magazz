@@ -1,0 +1,123 @@
+@{
+    ViewData["Title"] = "Оформление заказа";
+    var cart = ViewBag.Cart as magazz.Models.Cart;
+    var customer = ViewBag.Customer as magazz.Models.Customer;
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    <div class="row">
+        <!-- Форма оформления -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Данные доставки</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        @if (customer != null)
+                        {
+                            <div class="alert alert-info">
+                                <strong>@customer.FirstName @customer.LastName</strong><br>
+                                <i class="bi bi-telephone"></i> @customer.Phone<br>
+                                @if (!string.IsNullOrEmpty(customer.Address))
+                                {
+                                    <i class="bi bi-geo-alt"></i> @customer.Address
+                                }
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label for="deliveryAddress" class="form-label">Адрес доставки <span class="text-danger">*</span></label>
+                            <textarea id="deliveryAddress" name="deliveryAddress" class="form-control" rows="3" required 
+                                placeholder="Укажите полный адрес доставки">@(customer?.Address ?? "")</textarea>
+                            <div class="form-text">Город, улица, дом, квартира</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="note" class="form-label">Комментарий к заказу</label>
+                            <textarea id="note" name="note" class="form-control" rows="2" 
+                                placeholder="Например: позвонить за час до доставки"></textarea>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle"></i> После оформления заказа мы свяжемся с вами для подтверждения.
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Назад в корзину
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Оформить заказ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Сводка по заказу -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Ваш заказ</h5>
+                </div>
+                <div class="card-body">
+                    @if (cart != null && cart.CartItems.Any())
+                    {
+                        <div class="list-group list-group-flush mb-3">
+                            @foreach (var item in cart.CartItems)
+                            {
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <strong>@item.Product.Name</strong>
+                                            @if (!string.IsNullOrEmpty(item.SelectedSize) || !string.IsNullOrEmpty(item.SelectedColor))
+                                            {
+                                                <br>
+                                                <small class="text-muted">
+                                                    @if (!string.IsNullOrEmpty(item.SelectedSize))
+                                                    {
+                                                        <span>Размер: @item.SelectedSize</span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(item.SelectedColor))
+                                                    {
+                                                        <span class="ms-2">Цвет: @item.SelectedColor</span>
+                                                    }
+                                                </small>
+                                            }
+                                            <br>
+                                            <small class="text-muted">@item.Quantity шт. × @item.Product.Price.ToString("N0") ₽</small>
+                                        </div>
+                                        <div>
+                                            <strong>@((item.Product.Price * item.Quantity).ToString("N0")) ₽</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td>Товаров:</td>
+                                <td class="text-end">@cart.CartItems.Count шт.</td>
+                            </tr>
+                            <tr>
+                                <td>Количество:</td>
+                                <td class="text-end">@cart.CartItems.Sum(i => i.Quantity) шт.</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td><strong>Итого:</strong></td>
+                                <td class="text-end">
+                                    <h4 class="text-success mb-0">@cart.CartItems.Sum(i => i.Product.Price * i.Quantity).ToString("N0") ₽</h4>
+                                </td>
+                            </tr>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
