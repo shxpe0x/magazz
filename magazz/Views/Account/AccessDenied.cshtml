@@ -1,0 +1,20 @@
+@{
+    ViewData["Title"] = "Доступ запрещен";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-lock" style="font-size: 4rem; color: #dc3545;"></i>
+                    <h2 class="card-title mt-3">@ViewData["Title"]</h2>
+                    <p class="card-text mt-3">
+                        У вас нет прав для просмотра этой страницы.
+                    </p>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">Вернуться на главную</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
