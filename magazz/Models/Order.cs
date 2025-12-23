@@ -15,8 +15,11 @@ namespace magazz.Models
         
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
         
+        [StringLength(500)]
+        public string? DeliveryAddress { get; set; }
+        
         [StringLength(1000)]
-        public string? Notes { get; set; }
+        public string? Note { get; set; }
         
         // Foreign key
         public int CustomerId { get; set; }
