@@ -6,19 +6,20 @@ namespace magazz.Models
     {
         public int Id { get; set; }
         
-        [Required(ErrorMessage = "Имя обязательно")]
         [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
+        public string? FirstName { get; set; }
         
-        [Required(ErrorMessage = "Email обязателен")]
-        [EmailAddress(ErrorMessage = "Некорректный email")]
+        [StringLength(100)]
+        public string? LastName { get; set; }
+        
+        [Required(ErrorMessage = "Электронная почта обязательна")]
+        [EmailAddress(ErrorMessage = "Некорректная электронная почта")]
         [StringLength(100)]
         public string Email { get; set; } = string.Empty;
         
-        [Required(ErrorMessage = "Телефон обязателен")]
         [Phone(ErrorMessage = "Некорректный номер телефона")]
         [StringLength(20)]
-        public string Phone { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
         
         [StringLength(500)]
         public string? Address { get; set; }
