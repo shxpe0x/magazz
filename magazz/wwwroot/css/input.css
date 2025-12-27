@@ -1,0 +1,24 @@
+﻿@import "tailwindcss";
+
+@layer components {
+    .product-card {
+        @apply bg-white rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300;
+    }
+
+    .product-card-image {
+        @apply w-full aspect-square object-cover;
+    }
+
+    .btn-primary {
+        @apply px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 transition-colors;
+    }
+
+    .btn-secondary {
+        @apply px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors;
+    }
+}
+
+/* Настройки темы прямо в CSS */
+@theme {
+    --font-sans: 'Inter', system-ui, sans-serif;
+}
