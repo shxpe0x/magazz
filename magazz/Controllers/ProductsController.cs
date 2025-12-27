@@ -10,10 +10,12 @@ namespace magazz.Controllers
     public class ProductsController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public ProductsController(AppDbContext context)
+        public ProductsController(AppDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         // GET: /Products
@@ -239,7 +241,7 @@ namespace magazz.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // API для добавления размера
+        // API для добавления размера с проверкой на дубликаты
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -247,23 +249,42 @@ namespace magazz.Controllers
         {
             if (string.IsNullOrWhiteSpace(size))
             {
-                return BadRequest("Размер не может быть пустым");
+                TempData["ErrorMessage"] = "Размер не может быть пустым";
+                return RedirectToAction(nameof(Edit), new { id = productId });
+            }
+
+            // Проверка на дубликаты
+            var existingSize = await _context.ProductSizes
+                .FirstOrDefaultAsync(ps => ps.ProductId == productId && ps.Size.ToUpper() == size.Trim().ToUpper());
+            
+            if (existingSize != null)
+            {
+                TempData["ErrorMessage"] = $"Размер '{size}' уже добавлен для этого товара";
+                return RedirectToAction(nameof(Edit), new { id = productId });
             }
 
             var productSize = new ProductSize
             {
                 ProductId = productId,
-                Size = size.Trim(),
+                Size = size.Trim().ToUpper(),
                 Stock = stock
             };
 
+            // Валидация модели
+            if (!TryValidateModel(productSize))
+            {
+                TempData["ErrorMessage"] = string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(Edit), new { id = productId });
+            }
+
             _context.ProductSizes.Add(productSize);
             await _context.SaveChangesAsync();
-
+            
+            TempData["SuccessMessage"] = $"Размер '{size}' успешно добавлен";
             return RedirectToAction(nameof(Edit), new { id = productId });
         }
 
-        // API для добавления цвета
+        // API для добавления цвета с проверкой на дубликаты
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -271,7 +292,18 @@ namespace magazz.Controllers
         {
             if (string.IsNullOrWhiteSpace(color))
             {
-                return BadRequest("Цвет не может быть пустым");
+                TempData["ErrorMessage"] = "Цвет не может быть пустым";
+                return RedirectToAction(nameof(Edit), new { id = productId });
+            }
+
+            // Проверка на дубликаты
+            var existingColor = await _context.ProductColors
+                .FirstOrDefaultAsync(pc => pc.ProductId == productId && pc.Color.ToLower() == color.Trim().ToLower());
+            
+            if (existingColor != null)
+            {
+                TempData["ErrorMessage"] = $"Цвет '{color}' уже добавлен для этого товара";
+                return RedirectToAction(nameof(Edit), new { id = productId });
             }
 
             var productColor = new ProductColor
@@ -282,21 +314,64 @@ namespace magazz.Controllers
                 Stock = stock
             };
 
+            // Валидация модели
+            if (!TryValidateModel(productColor))
+            {
+                TempData["ErrorMessage"] = string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(Edit), new { id = productId });
+            }
+
             _context.ProductColors.Add(productColor);
             await _context.SaveChangesAsync();
-
+            
+            TempData["SuccessMessage"] = $"Цвет '{color}' успешно добавлен";
             return RedirectToAction(nameof(Edit), new { id = productId });
         }
 
-        // API для добавления изображения
+        // API для добавления изображения с загрузкой файла
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddImage(int productId, string imageUrl, string? altText, int displayOrder, bool isPrimary)
+        public async Task<IActionResult> UploadImage(int productId, IFormFile imageFile, string? altText, int displayOrder, bool isPrimary)
         {
-            if (string.IsNullOrWhiteSpace(imageUrl))
+            if (imageFile == null || imageFile.Length == 0)
             {
-                return BadRequest("URL изображения не может быть пустым");
+                TempData["ErrorMessage"] = "Файл изображения не выбран";
+                return RedirectToAction(nameof(Edit), new { id = productId });
+            }
+
+            // Проверка расширения файла
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            
+            if (!allowedExtensions.Contains(extension))
+            {
+                TempData["ErrorMessage"] = $"Недопустимый формат файла. Допустимы: {string.Join(", ", allowedExtensions)}";
+                return RedirectToAction(nameof(Edit), new { id = productId });
+            }
+
+            // Проверка размера файла (5 MB)
+            if (imageFile.Length > 5 * 1024 * 1024)
+            {
+                TempData["ErrorMessage"] = "Размер файла не должен превышать 5 MB";
+                return RedirectToAction(nameof(Edit), new { id = productId });
+            }
+
+            // Создаем папку для загрузок, если не существует
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "products");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            // Генерируем уникальное имя файла
+            var uniqueFileName = $"{productId}_{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            // Сохраняем файл
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await imageFile.CopyToAsync(stream);
             }
 
             // Если это главное изображение, сбрасываем флаг у других
@@ -312,17 +387,46 @@ namespace magazz.Controllers
                 }
             }
 
+            // Создаем запись в базе
             var productImage = new ProductImage
             {
                 ProductId = productId,
-                ImageUrl = imageUrl.Trim(),
-                AltText = altText?.Trim(),
+                ImageUrl = $"/uploads/products/{uniqueFileName}",
+                AltText = altText?.Trim() ?? Path.GetFileNameWithoutExtension(imageFile.FileName),
                 DisplayOrder = displayOrder,
                 IsPrimary = isPrimary
             };
 
             _context.ProductImages.Add(productImage);
             await _context.SaveChangesAsync();
+            
+            TempData["SuccessMessage"] = "Изображение успешно загружено";
+            return RedirectToAction(nameof(Edit), new { id = productId });
+        }
+
+        // Удаление изображения
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteImage(int imageId, int productId)
+        {
+            var image = await _context.ProductImages.FindAsync(imageId);
+            if (image != null)
+            {
+                // Удаляем файл с диска, если это не внешняя ссылка
+                if (image.ImageUrl.StartsWith("/uploads/"))
+                {
+                    var filePath = Path.Combine(_environment.WebRootPath, image.ImageUrl.TrimStart('/'));
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        System.IO.File.Delete(filePath);
+                    }
+                }
+
+                _context.ProductImages.Remove(image);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Изображение удалено";
+            }
 
             return RedirectToAction(nameof(Edit), new { id = productId });
         }
