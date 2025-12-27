@@ -18,6 +18,11 @@ namespace magazz.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        
+        // Новые таблицы для нормализации
+        public DbSet<ProductSize> ProductSizes { get; set; }
+        public DbSet<ProductColor> ProductColors { get; set; }
+        public DbSet<ProductImage> ProductImages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -49,6 +54,27 @@ namespace magazz.Data
                 .WithMany(b => b.Products)
                 .HasForeignKey(p => p.BrandId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Настройка ProductSize
+            modelBuilder.Entity<ProductSize>()
+                .HasOne(ps => ps.Product)
+                .WithMany(p => p.Sizes)
+                .HasForeignKey(ps => ps.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Настройка ProductColor
+            modelBuilder.Entity<ProductColor>()
+                .HasOne(pc => pc.Product)
+                .WithMany(p => p.Colors)
+                .HasForeignKey(pc => pc.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Настройка ProductImage
+            modelBuilder.Entity<ProductImage>()
+                .HasOne(pi => pi.Product)
+                .WithMany(p => p.Images)
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Настройка CartItem
             modelBuilder.Entity<CartItem>()
@@ -107,6 +133,12 @@ namespace magazz.Data
                 .HasIndex(o => o.OrderNumber)
                 .IsUnique();
 
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.Name);
+
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.Price);
+
             // Seed-данные для категорий
             modelBuilder.Entity<Category>().HasData(
                 new Category { Id = 1, Name = "Мужское", Description = "Мужская одежда" },
@@ -128,10 +160,8 @@ namespace magazz.Data
                 { 
                     Id = 1, 
                     Name = "Оверсайз свитшот", 
-                    Description = "Свободный свитшот из хлопка", 
+                    Description = "Свободный свитшот из хлопка премиум качества", 
                     Price = 5990, 
-                    AvailableSizes = "S,M,L,XL",
-                    AvailableColors = "Черный,Белый,Серый",
                     Stock = 20,
                     CategoryId = 1,
                     BrandId = 1
@@ -142,8 +172,6 @@ namespace magazz.Data
                     Name = "Вязаная водолазка", 
                     Description = "Теплая водолазка из мериноса", 
                     Price = 7490, 
-                    AvailableSizes = "XS,S,M,L",
-                    AvailableColors = "Бежевый,Черный",
                     Stock = 15,
                     CategoryId = 2,
                     BrandId = 2
@@ -154,11 +182,46 @@ namespace magazz.Data
                     Name = "Кожаная сумка", 
                     Description = "Минималистичная сумка из натуральной кожи", 
                     Price = 12990, 
-                    AvailableColors = "Черный,Коричневый",
                     Stock = 8,
                     CategoryId = 3,
                     BrandId = 3
                 }
+            );
+
+            // Seed-данные для размеров
+            modelBuilder.Entity<ProductSize>().HasData(
+                // Свитшот
+                new ProductSize { Id = 1, ProductId = 1, Size = "S", Stock = 5 },
+                new ProductSize { Id = 2, ProductId = 1, Size = "M", Stock = 6 },
+                new ProductSize { Id = 3, ProductId = 1, Size = "L", Stock = 5 },
+                new ProductSize { Id = 4, ProductId = 1, Size = "XL", Stock = 4 },
+                // Водолазка
+                new ProductSize { Id = 5, ProductId = 2, Size = "XS", Stock = 3 },
+                new ProductSize { Id = 6, ProductId = 2, Size = "S", Stock = 4 },
+                new ProductSize { Id = 7, ProductId = 2, Size = "M", Stock = 5 },
+                new ProductSize { Id = 8, ProductId = 2, Size = "L", Stock = 3 }
+            );
+
+            // Seed-данные для цветов
+            modelBuilder.Entity<ProductColor>().HasData(
+                // Свитшот
+                new ProductColor { Id = 1, ProductId = 1, Color = "Черный", HexCode = "#000000", Stock = 7 },
+                new ProductColor { Id = 2, ProductId = 1, Color = "Белый", HexCode = "#FFFFFF", Stock = 6 },
+                new ProductColor { Id = 3, ProductId = 1, Color = "Серый", HexCode = "#808080", Stock = 7 },
+                // Водолазка
+                new ProductColor { Id = 4, ProductId = 2, Color = "Бежевый", HexCode = "#F5F5DC", Stock = 8 },
+                new ProductColor { Id = 5, ProductId = 2, Color = "Черный", HexCode = "#000000", Stock = 7 },
+                // Сумка
+                new ProductColor { Id = 6, ProductId = 3, Color = "Черный", HexCode = "#000000", Stock = 4 },
+                new ProductColor { Id = 7, ProductId = 3, Color = "Коричневый", HexCode = "#8B4513", Stock = 4 }
+            );
+
+            // Seed-данные для изображений (примеры URL)
+            modelBuilder.Entity<ProductImage>().HasData(
+                new ProductImage { Id = 1, ProductId = 1, ImageUrl = "/images/products/sweatshirt-1.jpg", AltText = "Оверсайз свитшот", DisplayOrder = 1, IsPrimary = true },
+                new ProductImage { Id = 2, ProductId = 1, ImageUrl = "/images/products/sweatshirt-2.jpg", AltText = "Оверсайз свитшот вид сзади", DisplayOrder = 2, IsPrimary = false },
+                new ProductImage { Id = 3, ProductId = 2, ImageUrl = "/images/products/turtleneck-1.jpg", AltText = "Вязаная водолазка", DisplayOrder = 1, IsPrimary = true },
+                new ProductImage { Id = 4, ProductId = 3, ImageUrl = "/images/products/bag-1.jpg", AltText = "Кожаная сумка", DisplayOrder = 1, IsPrimary = true }
             );
         }
     }
