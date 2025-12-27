@@ -7,10 +7,12 @@ namespace magazz.Models
     {
         public int Id { get; set; }
         
-        [Required]
-        [StringLength(10)]
+        [Required(ErrorMessage = "Размер обязателен")]
+        [StringLength(10, ErrorMessage = "Размер не может быть длиннее 10 символов")]
+        [RegularExpression(@"^[A-Z0-9]+$", ErrorMessage = "Размер должен содержать только заглавные буквы и цифры (например: S, M, L, XL, XXL, 42, 44)")]
         public string Size { get; set; } = string.Empty;
         
+        [Range(0, int.MaxValue, ErrorMessage = "Количество не может быть отрицательным")]
         public int Stock { get; set; } = 0;
         
         // Foreign key
