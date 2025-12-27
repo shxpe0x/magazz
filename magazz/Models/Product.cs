@@ -17,14 +17,10 @@ namespace magazz.Models
         [Range(0.01, 1000000, ErrorMessage = "Цена должна быть больше 0")]
         public decimal Price { get; set; }
         
-        // Размеры через запятую (S, M, L, XL)
-        public string? AvailableSizes { get; set; }
-        
-        // Цвета через запятую
-        public string? AvailableColors { get; set; }
-        
-        // URL изображений через запятую
-        public string? ImageUrls { get; set; }
+        // Удалены строковые поля, теперь используются отдельные таблицы
+        // public string? AvailableSizes { get; set; }
+        // public string? AvailableColors { get; set; }
+        // public string? ImageUrls { get; set; }
         
         public int Stock { get; set; } = 0;
         
@@ -39,5 +35,10 @@ namespace magazz.Models
         // Navigation properties
         public Category Category { get; set; } = null!;
         public Brand? Brand { get; set; }
+        
+        // Новые коллекции для нормализованных данных
+        public ICollection<ProductSize> Sizes { get; set; } = new List<ProductSize>();
+        public ICollection<ProductColor> Colors { get; set; } = new List<ProductColor>();
+        public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
     }
 }
